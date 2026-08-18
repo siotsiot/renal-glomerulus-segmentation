@@ -1,0 +1,51 @@
+# Python cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Medical image datasets and annotations
+data/
+dataset/
+datasets/
+images/
+masks/
+annotations/
+
+# Model weights and checkpoints
+models/
+weights/
+checkpoints/
+saved_models/
+trained_models/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Training and evaluation outputs
+outputs/
+results/
+eval_outputs/
+sanity_outputs/
+failure_analysis*/
+val_overlays/
+overlays/
+predictions/
+
+# Logs
+runs/
+logs/
+wandb/
+events.out.tfevents.*
+
+# OS and editor temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*~
