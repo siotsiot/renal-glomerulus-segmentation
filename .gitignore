@@ -43,6 +43,36 @@ logs/
 wandb/
 events.out.tfevents.*
 
+# Private fold assignments and run metadata
+folds/**/*.csv
+real_data_artifacts/
+**/command.txt
+**/run_manifest.json
+**/run_status.json
+
+# External/generalization studies are outside this public repository scope
+analysis/
+glomerulus-segmentation-external/
+external_data/
+external_results/
+external/
+NEPTUNE/
+neptune/
+Gallego/
+gallego/
+
+# Local runtimes and machine-specific configuration
+runtime/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
 # OS and editor temporary files
 .DS_Store
 Thumbs.db

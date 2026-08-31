@@ -1,199 +1,242 @@
-# U-Net-Based Glomerulus Segmentation on Renal Histopathology Images
+# Renal Glomerulus Segmentation
 
-## Overview
+This repository contains two clearly separated generations of code for binary
+glomerulus segmentation in renal histopathology images.
 
-이 repository는 신장 병리 이미지에서 사구체(glomerulus) 영역을 binary semantic segmentation하기 위해 작성한 학부 졸업논문 연구용 코드입니다.
+The primary, current experiment is the controlled four-architecture Internal
+comparison prepared for the KoSAIM abstract. Its frozen production source is
+under `uanv_experiment/`. The older root scripts and `unet/` directory are
+retained as the graduation-thesis legacy pipeline. The two pipelines do not
+share one evaluator or one checkpoint-selection policy and must not be treated
+as interchangeable.
 
-주요 목적은 실제 병원 병리 이미지 데이터셋을 대상으로 U-Net 계열 segmentation model을 학습하고, 동일한 실험 조건에서 정량 평가와 정성 분석을 수행하는 것입니다.
+No clinical images, masks, annotations, sample identifiers, fold-assignment
+CSVs, checkpoints, or patient information are distributed in this repository.
 
-의료 이미지 데이터, mask, checkpoint, trained weight, overlay image, 환자 정보 및 병원 관련 비공개 정보는 이 repository에 포함하지 않습니다.
+## Current KoSAIM experiment scope
 
-## Research Objective
+The current public scope is limited to the clean Internal experiment:
 
-본 연구의 목표는 소규모 실제 병원 병리 이미지 데이터셋에서 U-Net 계열 모델들의 성능을 동일 조건에서 비교하는 것입니다.
+- binary semantic segmentation;
+- 361 image-mask pairs from one internal clinical dataset;
+- four architectures trained on the same five prevalidated folds;
+- direct RGB resize to 512×512;
+- fixed 35-epoch training;
+- epoch-35 checkpoint as the primary checkpoint;
+- threshold 0.5 with the `>=` comparison operator;
+- sample-macro Dice, IoU, precision, and recall;
+- explicit empty-ground-truth metric handling.
 
-특히 binary mask 기반 사구체 segmentation task에서 model architecture, threshold selection, cross validation 결과가 Dice, IoU, Precision, Recall에 어떤 차이를 만드는지 확인하는 데 초점을 두었습니다.
+External generalization experiments and subsequent NEPTUNE, Gallego,
+appearance-augmentation, spatial-augmentation, and sliding-window work are not
+part of this repository release.
 
-## Compared Models
+## Architectures
 
-- U-Net
-- U-NeXt
-- U-NeXt + BottleneckRefineBlock
+The model labels accepted by the production runner are defined by
+`uanv_experiment/registry.py`:
 
-## Experimental Workflow
+| CLI label | Implementation |
+|---|---|
+| `vanilla_unet` | `VanillaUNet` |
+| `unext` | `UNext` |
+| `unext_legacy_brb` | `UNext` with the legacy residual refinement block |
+| `uanv_paper_inspired_attention_unet` | `UANVPaperInspiredAttentionUNet` |
 
-1. image/mask preprocessing
-2. image-mask pair 구성 및 sanity check
-3. 5-fold cross validation split
-4. model training
-5. threshold sweep
-6. quantitative evaluation
-7. overlay-based qualitative analysis
-8. failure case analysis
+The paper-inspired attention model is an independent, paper-guided
+implementation. It is not the original UANV authors' official implementation.
 
-## Repository Structure
+## Repository structure
 
 ```text
 .
-├── unext_train.py                 # U-NeXt, U-Net variant, training, 5-fold CV, loss/metric utilities
-├── threshold_sweep.py             # saved fold checkpoint 기반 threshold sweep
-├── eval_threshold_sweep.py        # U-NeXt checkpoint threshold evaluation script
-├── analyze_val_overlays.py        # validation overlay 기반 qualitative failure analysis
-├── batch_analyze_all_overlays.py  # 여러 fold/epoch overlay batch analysis
-├── select_representative_cases.py # 대표 success/failure case 선택
-├── sanity_check_dataset.py        # image/mask pair, mask statistics, overlay sanity check
-├── unet/
-│   ├── model.py                   # U-Net architecture
-│   ├── dataset.py                 # GlomerulusDataset
-│   ├── loss.py                    # BCE-Dice loss
-│   ├── train.py                   # baseline U-Net training script
-│   └── evaluate.py                # U-Net evaluation script
-└── README.md
+├── uanv_experiment/              # current clean Internal experiment
+│   ├── architectures/
+│   ├── config.py                 # frozen common protocol settings
+│   ├── dataset.py                # RGB image and binary mask input pipeline
+│   ├── losses.py                 # weighted BCE-Dice loss
+│   ├── metrics.py                # fixed-threshold sample-macro metrics
+│   ├── protocol.json             # machine-readable locked protocol
+│   ├── provenance.py             # run-layout and checkpoint-policy guards
+│   ├── registry.py               # four-architecture registry
+│   └── run_experiment.py         # one-model/one-fold production runner
+├── folds/
+│   └── README.md                 # fold schema only; no private IDs
+├── unext_train.py                # graduation-thesis legacy pipeline
+├── unet/                         # graduation-thesis legacy U-Net pipeline
+├── threshold_sweep.py            # legacy analysis
+├── eval_threshold_sweep.py       # legacy analysis
+└── remaining root analysis files # legacy qualitative utilities
 ```
 
-현재 public repository에는 연구 재현에 필요한 source code 중심으로 정리하는 것을 목표로 합니다. 실제 실험 결과물, private dataset, checkpoint, overlay image는 공개 대상에서 제외합니다.
+## Environment setup
 
-## Dataset Format
+The recorded production environment used Python 3.11.9, PyTorch
+2.7.1+cu128, and CUDA 12.8. Exact production versions of NumPy, OpenCV, and
+`timm` were not recorded in the run manifests, so they are listed without
+unsupported exact pins.
 
-실제 데이터는 포함하지 않습니다. 코드는 아래와 같은 directory structure를 가정합니다.
+Create an isolated environment and install the small dependency set:
+
+```powershell
+python -m venv .venv
+& .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+For GPU reproduction, install the PyTorch build appropriate for the local CUDA
+environment following the official PyTorch installation instructions.
+
+## Dataset contract
+
+The production runner expects user-supplied data and fold files:
 
 ```text
 data/
 ├── images/
-│   ├── sample_001.png
-│   ├── sample_002.png
-│   └── ...
+│   └── <id>.png
 └── masks/
-    ├── sample_001.tiff
-    ├── sample_002.tiff
+    └── <id>.tiff
+
+folds/
+├── fold_1/
+│   ├── paired_ids.csv
+│   ├── train_ids.csv
+│   └── val_ids.csv
+├── fold_2/
+│   └── ...
+└── fold_5/
     └── ...
 ```
 
-- `data/images/*.png`: input renal histopathology image
-- `data/masks/*.tiff`: corresponding binary segmentation mask
-- image와 mask는 같은 file stem을 가져야 합니다.
+Each CSV has exactly one column named `id`. Image and mask stems must match the
+IDs. The audited Internal masks contained values 0 and 255; the production
+foreground rule is `raw_mask > 0`. See `folds/README.md` for the schema and
+aggregate fold sizes.
 
-## How to Run
+## Validate the CLI and fold contract
 
-아래 command는 실행 예시입니다. 실제 환경에서는 dataset path, image size, batch size, model name, checkpoint path 등을 수정해야 할 수 있습니다.
+`--dry-run` validates the locked policy, fold CSV structure, and output-path
+collision protection without loading the image dataset or starting training:
 
-### Training
-
-```bash
-python unext_train.py \
-  --name glomerulus_UNext_woDS \
-  --arch UNext \
-  --img_dir data/images \
-  --mask_dir data/masks \
-  --img_ext .png \
-  --mask_ext .tiff \
-  --img_size 512 \
-  --kfolds 5 \
-  --run_all_folds True
+```powershell
+python .\uanv_experiment\run_experiment.py `
+  --model vanilla_unet `
+  --fold 1 `
+  --production-scope all_folds_locked `
+  --image-dir .\data\images `
+  --mask-dir .\data\masks `
+  --fold-root .\folds `
+  --run-dir .\runs\fold_1\vanilla_unet `
+  --device cuda `
+  --dry-run
 ```
 
-### Threshold Sweep
+## Training command
 
-```bash
-python threshold_sweep.py \
-  --model_dir models/unet_512_aug_5fold \
-  --folds 5 \
-  --checkpoint_name best_checkpoint.pth \
-  --output_dir models/unet_512_aug_5fold/threshold_sweep
+One invocation runs exactly one registered model on one existing fold. The
+runner refuses to overwrite an existing run directory and requires the
+`uanv_experiment/` source to match a clean committed Git snapshot for a
+non-dry production run.
+
+```powershell
+$env:CUBLAS_WORKSPACE_CONFIG=':4096:8'
+
+python .\uanv_experiment\run_experiment.py `
+  --model vanilla_unet `
+  --fold 1 `
+  --production-scope all_folds_locked `
+  --image-dir .\data\images `
+  --mask-dir .\data\masks `
+  --fold-root .\folds `
+  --run-dir .\runs\fold_1\vanilla_unet `
+  --device cuda
 ```
 
-### Qualitative Overlay Analysis
+Repeat the command with the four registry labels and folds 1–5 while reusing
+the same fold CSVs for every architecture.
 
-```bash
-python analyze_val_overlays.py \
-  --overlay_dir models/unet_512_aug_5fold/fold_1/val_overlays/epoch_035 \
-  --output_dir failure_analysis/unet_fold1_epoch035
+## Primary evaluation
+
+There is no separate evaluation-only CLI in the frozen production snapshot.
+After epoch 35, the command above reloads `epoch_35_checkpoint.pth`, evaluates
+the validation fold at threshold 0.5 using `>=`, and writes:
+
+```text
+runs/<fold>/<model>/primary_metrics_threshold_0.5.csv
 ```
 
-## Evaluation Metrics
+It also writes an explicitly secondary exploratory threshold sweep. The
+best-validation checkpoint and threshold sweep are not primary-result eligible
+under `uanv_experiment/protocol.json`.
 
-- Dice: prediction mask와 ground-truth mask의 overlap을 평가하는 metric입니다.
-- IoU: prediction mask와 ground-truth mask의 intersection over union을 계산합니다.
-- Precision: prediction foreground 중 실제 foreground인 비율을 나타냅니다.
-- Recall: ground-truth foreground 중 model이 찾아낸 비율을 나타냅니다.
+## Five-fold protocol and reproducibility scope
 
-## My Contribution
+The four models used identical assignments within each fold:
 
-- 연구 데이터에 맞는 image-mask pair 구성
-- binary mask preprocessing 및 mask format 확인
-- U-Net baseline 추가 또는 정리
-- U-Net, U-NeXt, U-NeXt + BottleneckRefineBlock 비교 실험
-- 5-fold cross validation 수행
-- threshold sweep 기반 evaluation
-- Dice, IoU, Precision, Recall 계산
-- overlay 기반 정성 분석 및 failure case analysis
+| Fold | Training | Validation | Total |
+|---:|---:|---:|---:|
+| 1 | 288 | 73 | 361 |
+| 2 | 289 | 72 | 361 |
+| 3 | 289 | 72 | 361 |
+| 4 | 289 | 72 | 361 |
+| 5 | 289 | 72 | 361 |
 
-## Code Base Notice
+The original fold CSVs are not public because they contain identifiers from a
+non-public clinical dataset. Consequently, this repository publishes the
+training/evaluation implementation and locked experimental protocol, but does
+not claim that the exact original split can be reconstructed from public files.
+Patient/group independence of the historical assignments was not verifiable.
 
-이 repository의 코드는 기존 U-Net / U-NeXt 기반 구현을 참고하고, 학부 졸업논문 연구 목적에 맞게 수정 및 확장한 것입니다.
+## Data and code availability
 
-주요 수정 방향은 신장 병리 이미지의 사구체 binary semantic segmentation task에 맞춘 dataset loading, mask preprocessing, cross validation, threshold sweep, quantitative evaluation, overlay-based qualitative analysis입니다.
+The clinical dataset is not publicly distributed. The public code can be used
+with appropriately authorized data prepared according to the documented image,
+mask, and fold contracts. Checkpoints, run directories, raw metrics artifacts,
+and private identifiers are not included.
 
-## Data and Privacy Notice
+`PROVENANCE_MANIFEST.json` records only production source hashes and source
+snapshot identifiers. It contains no sample identifiers or workstation paths.
 
-이 repository에는 다음 항목을 포함하지 않습니다.
+The frozen `uanv_experiment/protocol.json` retains a relative reference to a
+historical parity source. That file is not distributed here, the reference is
+not used by the production training path, and it is preserved only so the
+published production source remains byte-identical to the audited snapshot.
 
-- 원본 의료 이미지
-- segmentation mask
-- 환자 정보 또는 식별 가능 정보
-- 병원 관련 비공개 정보
-- checkpoint
-- trained weight
-- prediction image
-- overlay image
-- private dataset 기반 result image
+## Graduation-thesis legacy pipeline
 
-사용한 데이터셋은 연구 목적으로 제공된 비공개 의료 데이터이며, public GitHub를 통해 공개 배포하지 않습니다.
+The pre-existing root scripts and `unet/` directory are preserved for history:
 
-## Limitations
+- `unext_train.py` contains the earlier U-Net/UNeXt/legacy-BRB integrated
+  training workflow and dynamically generated cross-validation splits;
+- `unet/` contains the earlier standalone U-Net workflow;
+- threshold-sweep, overlay, representative-case, and sanity-check scripts are
+  earlier exploratory and qualitative utilities.
 
-- 소규모 데이터셋을 기반으로 한 실험입니다.
-- 단일 기관 데이터일 가능성이 있어 일반화 성능에는 추가 검증이 필요합니다.
-- 병리 이미지 annotation에는 boundary ambiguity가 존재할 수 있습니다.
-- BottleneckRefineBlock 적용에 따른 개선 폭은 제한적일 수 있습니다.
-- 공개 repository에는 private dataset과 trained checkpoint가 포함되지 않으므로, 동일한 수치 재현에는 별도 데이터 준비가 필요합니다.
+These files remain available at their original paths, but they are not the
+production source for the clean KoSAIM four-model comparison.
 
-## License and Third-Party Code
+## License and upstream attribution
 
-This repository is published solely for non-commercial research or evaluation.
-Unless otherwise identified in the third-party notices, its distribution and
-use are subject to the [NVIDIA Source Code License for SegFormer](LICENSE).
-This restriction is preserved because the UNeXt-derived implementation
-contains SegFormer-derived components.
+The existing project `LICENSE`, files under `LICENSES/`, and
+`THIRD_PARTY_NOTICES.md` remain in effect. The UNeXt lineage, SegFormer-related
+components acknowledged by upstream UNeXt, `timm`, and the paper-guided UANV
+concept are described in `THIRD_PARTY_NOTICES.md`.
 
-The UNeXt implementation is adapted from the official
-[UNeXt-pytorch](https://github.com/jeya-maria-jose/UNeXt-pytorch) repository,
-which is distributed under the MIT License. UNeXt upstream also acknowledges
-code blocks and helper functions from
-[pytorch-nested-unet](https://github.com/4uiiurz1/pytorch-nested-unet),
-[SegFormer](https://github.com/NVlabs/SegFormer), and
-[AS-MLP](https://github.com/svip-lab/AS-MLP).
-
-Lovász hinge support uses the separately installed
-[LovaszSoftmax](https://github.com/bermanmaxim/LovaszSoftmax) implementation;
-its source code is not included in this repository.
-
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
-[LICENSES/](LICENSES/) for component mappings, copyright notices, and complete
-license texts. Publication of this research code does not grant permission to
-use the private clinical dataset, annotations, checkpoints, or derived patient
-materials; none of those materials is included here.
+Human review is still required for the attribution and redistribution status
+of the independently implemented attention/UANV-related source before release.
+No statement in this README grants access to or redistribution rights for the
+clinical data.
 
 ## Citation
 
-If this repository supports academic work, please cite the relevant original
-methods:
+Citation details for the KoSAIM abstract will be added when the final
+bibliographic record is available.
 
-- Valanarasu, J. M. J., and Patel, V. M. (2022).
-  [UNeXt: MLP-based Rapid Medical Image Segmentation Network](https://arxiv.org/abs/2203.04967).
-- Ronneberger, O., Fischer, P., and Brox, T. (2015).
-  [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597).
-- Berman, M., Rannen Triki, A., and Blaschko, M. B. (2018).
-  [The Lovász-Softmax Loss: A Tractable Surrogate for the Optimization of the Intersection-over-Union Measure in Neural Networks](https://openaccess.thecvf.com/content_cvpr_2018/html/Berman_The_LovaSz-Softmax_Loss_A_Tractable_Surrogate_for_the_Optimization_CVPR_2018_paper.html).
-- Xie, E., Wang, W., Yu, Z., Anandkumar, A., Alvarez, J. M., and Luo, P. (2021).
-  [SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers](https://proceedings.neurips.cc/paper/2021/hash/64f1f27bf1b4ec22924fd0acb550c235-Abstract.html).
+Method references:
+
+- Ronneberger O, Fischer P, Brox T. U-Net: Convolutional Networks for
+  Biomedical Image Segmentation. MICCAI 2015.
+- Valanarasu JMJ, Patel VM. UNeXt: MLP-based Rapid Medical Image Segmentation
+  Network. MICCAI 2022.
