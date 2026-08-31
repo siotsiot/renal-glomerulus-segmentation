@@ -93,3 +93,60 @@ License: Apache License 2.0 —
 The U-Net implementations in unet/model.py and unext_train.py follow the
 architecture described by Ronneberger, Fischer, and Brox (2015). The original
 paper is cited in the repository README.
+
+## Clean Internal experiment source
+
+The current clean experiment under `uanv_experiment/` was added without
+removing or replacing the graduation-thesis legacy source described above.
+
+### UNeXt lineage
+
+Affected clean source:
+
+- `uanv_experiment/architectures/unext.py`
+- `uanv_experiment/registry.py`
+
+The clean `UNext` implementation is an architecture-parity copy of the
+recovered project-specific UNeXt implementation. Its fundamental upstream is
+UNeXt-pytorch:
+
+- Upstream: https://github.com/jeya-maria-jose/UNeXt-pytorch
+- Copyright (c) 2022 Jeya Maria Jose
+- License: MIT License — `LICENSES/UNEXT-MIT.txt`
+
+The upstream acknowledgements and license notices for SegFormer, AS-MLP,
+pytorch-nested-unet, and `timm` remain preserved in this file and `LICENSES/`.
+The optional legacy residual refinement block is a local experiment adaptation
+and is not represented as part of the original UNeXt architecture.
+
+### Vanilla U-Net
+
+Affected clean source:
+
+- `uanv_experiment/architectures/unet.py`
+- `uanv_experiment/losses.py`
+
+The clean baseline follows the U-Net architecture described by Ronneberger,
+Fischer, and Brox (2015) and preserves the project-specific production
+implementation used in the clean comparison.
+
+### Paper-inspired UANV-related attention implementation
+
+Affected clean source:
+
+- `uanv_experiment/architectures/attention.py`
+- `uanv_experiment/architectures/uanv.py`
+
+These files describe an independent implementation guided by the published
+locational-attention concept associated with:
+
+- https://github.com/YurimALee/UANV
+
+It is not the original authors' official implementation. During preparation of
+the public staging source, no upstream license covering reuse from that
+repository was established.
+
+**HUMAN REVIEW REQUIRED:** Before release, the repository owner must confirm
+the implementation's code lineage, ownership, attribution language, and
+compatibility with the existing project license. This notice does not resolve
+or grant any rights for an unclear upstream license.

@@ -1,0 +1,52 @@
+{
+  "schema": "kosaim_clean_internal_public_provenance_v1",
+  "scope": "clean Internal four-model five-fold experiment source only",
+  "public_repository_base": {
+    "repository": "https://github.com/siotsiot/renal-glomerulus-segmentation",
+    "main_commit_before_integration": "566dff1ebae480d095f74549590dd0617cdd3d21"
+  },
+  "production_runs_reviewed": 20,
+  "production_snapshots": [
+    {
+      "folds": [1],
+      "run_count": 4,
+      "source_commit": "b7bb3786f2e5c5e103ed3c77d966ff5b72bf8ca1",
+      "production_scope": "fold1_only"
+    },
+    {
+      "folds": [2, 3, 4, 5],
+      "run_count": 16,
+      "source_commit": "f6233e76edcfa66f51ebbeb8e179a96669c8905b",
+      "production_scope": "all_folds_locked",
+      "direct_parent": "b7bb3786f2e5c5e103ed3c77d966ff5b72bf8ca1"
+    }
+  ],
+  "snapshot_difference": {
+    "changed_files": [
+      "uanv_experiment/protocol.json",
+      "uanv_experiment/run_experiment.py"
+    ],
+    "audited_semantic_difference": "execution authorization for validated Folds 2-5; model, data, loss, optimization, checkpoint, threshold, and metric semantics were unchanged"
+  },
+  "production_source_sha256": {
+    "uanv_experiment/run_experiment.py": "C14A7D0EE272B57E27841DCC4117CFE6C31A69A5028D1520EBD8079B9D66D704",
+    "uanv_experiment/config.py": "9A8C97A75E80BD4819126B6661DE0B227EF34DCAD91330E078587E6246455884",
+    "uanv_experiment/dataset.py": "D4FD617A0E85161DA847A1D295D0CAA332CF190AC4C65BAB44477DEDFAA751B3",
+    "uanv_experiment/losses.py": "E069EF2B6AF3E7407E261F8A35612CAD9C7755C6C6D1FC9939EEC5012DCCCC3A",
+    "uanv_experiment/metrics.py": "DF1A8E771B00D111D26D251487FB406193C8FD65BF5675C89C0BD0EDE0026595",
+    "uanv_experiment/provenance.py": "A5A4872AD220C93AE64255519941F18845895D0E4FD4EF45D5311D103D941312",
+    "uanv_experiment/protocol.json": "3D406333B010C94AA7A497B9AFBAC12432EF8021CDEE8B01514DE19443D9604F",
+    "uanv_experiment/registry.py": "A5EB384C294318CB9D00FC91F12663F49F73963287A30B57790DA9FD482D4670",
+    "uanv_experiment/architectures/__init__.py": "05743E8811025E14CC0765D9420DD0E430DC57AD5B25C068EF20BEB83C1D64FC",
+    "uanv_experiment/architectures/unet.py": "525CD0A337231DCD0763480C068DB83FBE0F5067C16F1DA2DB16F98F2FB4855B",
+    "uanv_experiment/architectures/unext.py": "1E2D414032AC9E75051AF6814F8A119D268D36CF7EECBEC24D92AF15BD5BDAFB",
+    "uanv_experiment/architectures/attention.py": "1858F61803F91CF7166BDAFD633FCF007E32B97EDB46C61B8EEA9D827A99421B",
+    "uanv_experiment/architectures/uanv.py": "E07440D6FBBE79AE094823CFA11F4897714B4711AA63617405AD97F40A375453"
+  },
+  "not_included": [
+    "clinical images, masks, annotations, and sample identifiers",
+    "private fold CSV files",
+    "checkpoints, weights, run directories, and internal execution artifacts",
+    "external datasets, external evaluation, and subsequent augmentation or sliding-window studies"
+  ]
+}

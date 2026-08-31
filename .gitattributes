@@ -1,0 +1,3 @@
+# Preserve the audited production-source bytes across platforms.
+uanv_experiment/** text eol=lf
+PROVENANCE_MANIFEST.json text eol=lf

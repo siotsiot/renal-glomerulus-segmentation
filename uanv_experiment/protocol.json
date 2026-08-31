@@ -1,0 +1,62 @@
+{
+  "schema": "uanv_clean_four_model_protocol_v1",
+  "authorized_production_scope": "fold_1_only",
+  "authorized_production_scopes": [
+    "fold1_only",
+    "all_folds_locked"
+  ],
+  "model_labels": [
+    "vanilla_unet",
+    "unext",
+    "unext_legacy_brb",
+    "uanv_paper_inspired_attention_unet"
+  ],
+  "common_training": {
+    "input_size": [512, 512],
+    "batch_size": 2,
+    "epochs": 35,
+    "loss": "WeightedBCEDiceLoss",
+    "bce_weight": 0.5,
+    "dice_weight": 1.0,
+    "optimizer": "Adam",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "scheduler": "CosineAnnealingLR",
+    "minimum_learning_rate": 0.00001,
+    "augmentation": true,
+    "fold_source": "historical_fold_csv_direct_read",
+    "seed": 42,
+    "num_workers": 0,
+    "cublas_workspace_config": ":4096:8",
+    "strict_deterministic_algorithms": true
+  },
+  "primary": {
+    "primary_checkpoint_policy": "fixed_epoch_35",
+    "checkpoint_filename": "epoch_35_checkpoint.pth",
+    "evaluation_checkpoint": "epoch_35_checkpoint.pth",
+    "threshold": 0.5,
+    "comparison_operator": ">=",
+    "aggregation": "sample_macro",
+    "metrics_output": "primary_metrics_threshold_0.5.csv"
+  },
+  "secondary_exploratory": {
+    "best_validation_checkpoint_filename": "best_val_checkpoint.pth",
+    "best_validation_checkpoint_primary_eligible": false,
+    "threshold_sweep_output": "exploratory_threshold_metrics.csv",
+    "threshold_sweep_primary_eligible": false
+  },
+  "empty_mask_policy": {
+    "dice": "gt_empty_and_pred_empty=1; gt_empty_and_pred_nonempty=0; otherwise_standard",
+    "iou": "gt_empty_and_pred_empty=1; gt_empty_and_pred_nonempty=0; otherwise_standard",
+    "precision": "pred_empty_and_gt_empty=1; pred_empty_and_gt_nonempty=0; otherwise_standard",
+    "recall": "gt_empty=NaN; exclude_NaN_from_sample_macro"
+  },
+  "historical_source": {
+    "path_reference": "../UANV - 복사본/unext_train.py",
+    "sha256": "5ADBFFE7163054F5AE4F8A02476E9D14C273861E76A44D619F291A2D13B91259",
+    "git_commit": "d1dbcd59de3b6e94173392ebe6a10b844b4c44db"
+  },
+  "evaluator_source": "metrics.py",
+  "aggregate_metrics_output_path_template": "runs/<model>/<fold>/primary_metrics_threshold_0.5.csv",
+  "patient_group_independence": "not_verifiable"
+}
